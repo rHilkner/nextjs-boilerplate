@@ -412,21 +412,25 @@ export async function POST(req: NextRequest) {
 }
 ```
 
-## Email Service
+## Email Service (Resend)
 
-The application integrates with email service providers to send notifications and transactional emails.
+The application uses Resend for delivering transactional emails and notifications.
 
-### Email Client Setup
+### Resend Client Setup
 
 1. **Provider Configuration**:
-   - Configurable email provider (options include SendGrid, Mailjet, etc.)
-   - Template-based emails
-   - Tracking and analytics
+   - Resend API key from environment variables
+   - React Email templates for modern, responsive emails
+   - Email delivery tracking and analytics
 
 ```typescript
 // src/lib/email.ts
+import { Resend } from 'resend';
 import { env } from '@/config/environment';
 import { logger } from '@/lib/logging';
+
+// Initialize Resend client
+const resend = new Resend(env.RESEND_API_KEY);
 
 // Interface for email sending
 export interface EmailData {
@@ -436,7 +440,7 @@ export interface EmailData {
   data: Record<string, any>;
 }
 
-// Email sending function (implementation depends on chosen provider)
+// Email sending function
 export async function sendEmail(emailData: EmailData): Promise<boolean> {
   const log = logger.child({ 
     to: emailData.to,
@@ -445,11 +449,23 @@ export async function sendEmail(emailData: EmailData): Promise<boolean> {
   });
   
   try {
-    // Implementation will differ based on the selected email provider
-    // This is a placeholder for the implementation
-    log.info('Sending email');
+    // Get the email component based on template name
+    const EmailTemplate = await getEmailTemplate(emailData.template);
     
-    // Return success
+    // Send the email with Resend
+    const { data, error } = await resend.emails.send({
+      from: `${env.APP_NAME} <noreply@${env.EMAIL_DOMAIN}>`,
+      to: emailData.to,
+      subject: emailData.subject,
+      react: EmailTemplate({ ...emailData.data }),
+    });
+    
+    if (error) {
+      log.error({ error }, 'Failed to send email with Resend');
+      return false;
+    }
+    
+    log.info({ messageId: data?.id }, 'Email sent successfully with Resend');
     return true;
   } catch (error) {
     log.error({ error }, 'Failed to send email');
@@ -458,41 +474,53 @@ export async function sendEmail(emailData: EmailData): Promise<boolean> {
 }
 ```
 
-### Email Templates
+### Email Templates with React Email
 
 1. **Template System**:
-   - HTML templates with variable substitution
-   - Responsive design for all devices
-   - Branding and styling consistent with the application
+   - React Email components for type-safe, responsive templates
+   - Consistent branding and styling across all emails
+   - Preview capability in development environment
 
 ```typescript
-// src/services/email/templates.ts
-import fs from 'fs';
-import path from 'path';
-import Handlebars from 'handlebars';
-import { env } from '@/config/environment';
+// src/lib/email/templates.tsx
+import { FC } from 'react';
+import {
+  WelcomeEmail,
+  PasswordResetEmail,
+  VerificationEmail,
+  SubscriptionConfirmationEmail,
+  InvoiceEmail,
+} from '@/components/emails';
 
-// Cache compiled templates
-const templateCache = new Map<string, HandlebarsTemplateDelegate>();
+// Map of template names to React components
+const templates: Record<string, FC<any>> = {
+  'welcome': WelcomeEmail,
+  'password-reset': PasswordResetEmail,
+  'verification': VerificationEmail,
+  'subscription-created': SubscriptionConfirmationEmail,
+  'payment-succeeded': InvoiceEmail,
+};
 
-export function renderTemplate(templateName: string, data: Record<string, any>): string {
-  // Check if template is already compiled and cached
-  if (!templateCache.has(templateName)) {
-    const templatePath = path.join(process.cwd(), 'src/services/email/templates', `${templateName}.hbs`);
-    const templateSource = fs.readFileSync(templatePath, 'utf8');
-    templateCache.set(templateName, Handlebars.compile(templateSource));
+// Get email template component by name
+export async function getEmailTemplate(templateName: string): Promise<FC<any>> {
+  const template = templates[templateName];
+  
+  if (!template) {
+    throw new Error(`Email template not found: ${templateName}`);
   }
   
-  // Get compiled template
-  const template = templateCache.get(templateName)!;
+  return template;
+}
+
+// For development: Preview email in browser
+export async function previewEmail(templateName: string, data: Record<string, any>): Promise<string> {
+  if (process.env.NODE_ENV === 'development') {
+    const template = await getEmailTemplate(templateName);
+    // Implementation for rendering the React component to HTML
+    // This could use React Email's render function or a custom solution
+  }
   
-  // Render with data and common variables
-  return template({
-    ...data,
-    appName: env.APP_NAME,
-    appUrl: env.APP_URL,
-    year: new Date().getFullYear(),
-  });
+  throw new Error('Email preview only available in development');
 }
 ```
 

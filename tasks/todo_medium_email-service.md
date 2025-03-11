@@ -1,18 +1,19 @@
-# Email Service Integration
+# Email Service Integration with Resend
 
-## Status: TODO
+## Status: IN PROGRESS
 ## Priority: MEDIUM
 
 ## Description
-Implement email service functionality for transactional emails such as account verification, password reset, notifications, and marketing emails. The documentation mentions this service needs to be decided upon.
+Implement email service functionality for transactional emails such as account verification, password reset, notifications, and marketing emails using Resend as our chosen email provider.
 
 ## Tasks
-1. Select and set up email service provider:
-   - [ ] Research and select an email service provider (Sendgrid, Mailgun, etc.)
-   - [ ] Configure API keys in environment variables
-   - [ ] Create email service wrapper
+1. Set up Resend as our email service provider:
+   - [x] Selected Resend as our email service provider
+   - [ ] Create Resend account and configure domain
+   - [ ] Set up Resend API keys in environment variables
+   - [ ] Create Resend email service wrapper
 
-2. Implement email templates:
+2. Implement React Email templates:
    - [ ] Create account verification email template
    - [ ] Create password reset email template
    - [ ] Create welcome email template
@@ -20,33 +21,36 @@ Implement email service functionality for transactional emails such as account v
    - [ ] Create invoice/receipt email templates
 
 3. Implement email sending functionality:
-   - [ ] Create email sending utility
+   - [ ] Set up React Email with Resend integration
+   - [ ] Create email sending utility function
    - [ ] Implement email queue system (optional)
    - [ ] Add email sending error handling and retries
    - [ ] Create email preview functionality for development
 
-4. Implement email tracking and analytics:
-   - [ ] Track email open rates
-   - [ ] Track email click rates
-   - [ ] Create email analytics dashboard
+4. Leverage Resend analytics:
+   - [ ] Set up email event tracking (opens, clicks, etc.)
+   - [ ] Configure webhook for delivery events
+   - [ ] Create email analytics dashboard (optional)
 
 ## Acceptance Criteria
-- Email service is integrated and functional
-- All required email templates are implemented
+- Resend is fully integrated and functional
+- All required React Email templates are implemented
 - Emails are sent reliably with proper error handling
-- Email analytics are tracked and viewable
+- Email analytics are tracked through Resend dashboard
 - Development environment allows previewing emails without sending
 - Email service is scalable for high volume
 
 ## Dependencies
 - Authentication system (for user emails)
 - Project structure implementation
-- Selected email service provider account and API keys
+- Resend account and API keys
+- React Email package
 
 ## Notes
-Select an email service provider based on:
-- Deliverability rates
-- Cost structure
-- Feature set (templates, analytics, etc.)
-- API usability
-- Integration complexity
+Reasons for selecting Resend:
+- High deliverability rates with reliable infrastructure
+- Developer-friendly API and React integration
+- Built-in analytics and event tracking
+- Reasonable pricing for startups and growing projects
+- Modern approach with React Email for type-safe, testable templates
+- Webhook support for advanced integrations

@@ -9,7 +9,7 @@ This boilerplate provides a foundation for building SaaS applications using Next
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: Google OAuth
 - **Payment Processing**: Stripe (USD)
-- **Email**: [To be decided]
+- **Email**: Resend
 - **Monitoring**: Self-hosted dashboard for KPIs and metrics
 - **Logging**: Pino (JSON format) with centralized log collection
 - **Error Tracking**: Sentry
