@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { QueryClientProvider } from "@/components/providers/QueryClientProvider";
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -32,7 +34,11 @@ export default function RootLayout({
       >
         <QueryClientProvider>
           <AuthProvider>
-            {children}
+            <div className="flex flex-col min-h-screen">
+              <Header />
+              <main className="flex-grow">{children}</main>
+              <Footer />
+            </div>
           </AuthProvider>
         </QueryClientProvider>
       </body>

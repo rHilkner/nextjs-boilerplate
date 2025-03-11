@@ -1,115 +1,124 @@
-'use client';
+import React from 'react';
+import { Card } from '@/components/common/Card';
+import { metadata as rootMetadata } from '@/app/layout';
 
-import Image from 'next/image';
-import { useUser } from '@/hooks/useUser';
-import { useAuth } from '@/hooks/useAuth';
-import { WithAuth } from '@/components/auth/WithAuth';
-import { WithRole } from '@/components/auth/WithPermission';
+export const metadata = {
+  ...rootMetadata,
+  title: 'Dashboard - Next.js SaaS Boilerplate',
+};
 
 export default function DashboardPage() {
-  const { user, isLoading } = useUser();
-  const { logout } = useAuth();
-  
-  // Handle logout
-  const handleLogout = () => {
-    logout();
-  };
-  
-  // This page is protected by the WithAuth component
   return (
-    <WithAuth>
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center border-b pb-4 mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              Logout
-            </button>
-          </div>
-          
-          {isLoading ? (
-            <div className="flex justify-center my-8">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center space-x-4 mb-6">
-                {user?.avatar && (
-                  <Image
-                    src={user.avatar}
-                    alt={user.name || 'User'}
-                    width={64}
-                    height={64}
-                    className="h-16 w-16 rounded-full object-cover"
+    <div>
+      <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+      
+      <div className="mt-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Stats cards */}
+          <Card>
+            <div className="flex items-center">
+              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
                   />
-                )}
-                <div>
-                  <h2 className="text-xl font-semibold">{user?.name || 'User'}</h2>
-                  <p className="text-gray-500">{user?.email}</p>
-                  <div className="mt-1">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {user?.role}
-                    </span>
-                  </div>
-                </div>
+                </svg>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {/* Admin section */}
-                <WithRole role="ADMIN" fallback={<div className="hidden"></div>}>
-                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-                    <h3 className="text-lg font-medium text-purple-800 mb-2">Admin Controls</h3>
-                    <p className="text-purple-600 mb-4">You have admin privileges, giving you access to all features of the platform.</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button className="px-3 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700">
-                        User Management
-                      </button>
-                      <button className="px-3 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700">
-                        System Settings
-                      </button>
-                    </div>
-                  </div>
-                </WithRole>
-                
-                {/* User section */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                  <h3 className="text-lg font-medium text-blue-800 mb-2">Your Account</h3>
-                  <p className="text-blue-600 mb-4">Manage your account settings and preferences.</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button className="px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                      Profile Settings
-                    </button>
-                    <button className="px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                      Notification Preferences
-                    </button>
-                  </div>
-                </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Total Users</p>
+                <p className="mt-1 text-xl font-semibold text-gray-900">12,345</p>
               </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-800 mb-2">Permissions</h3>
-                {user?.permissions && user.permissions.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {user.permissions.map((permission) => (
-                      <span
-                        key={permission}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                      >
-                        {permission}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No specific permissions assigned.</p>
-                )}
+            </div>
+          </Card>
+          
+          <Card>
+            <div className="flex items-center">
+              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
               </div>
-            </>
-          )}
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Revenue</p>
+                <p className="mt-1 text-xl font-semibold text-gray-900">$34,567.89</p>
+              </div>
+            </div>
+          </Card>
+          
+          <Card>
+            <div className="flex items-center">
+              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Projects</p>
+                <p className="mt-1 text-xl font-semibold text-gray-900">123</p>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
-    </WithAuth>
+      
+      <div className="mt-6">
+        <h2 className="text-lg font-medium text-gray-900">Recent Activity</h2>
+        <div className="mt-3">
+          <Card>
+            <div className="divide-y divide-gray-200">
+              {[1, 2, 3, 4, 5].map((item) => (
+                <div key={item} className="py-3 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gray-200" />
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900">
+                        User {item} did something
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Description of the action
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {item} hour{item !== 1 ? 's' : ''} ago
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 }
