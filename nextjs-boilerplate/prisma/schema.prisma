@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model with authentication and authorization
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  name            String?
+  avatar          String?
+  role            UserRole       @default(CUSTOMER)
+  googleId        String?        @unique
+  stripeCustomerId String?       @unique
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  subscriptions   Subscription[]
+  permissions     Permission[]
+  files           File[]
+}
+
+// Permissions for fine-grained access control
+model Permission {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Subscription model for Stripe integration
+enum SubscriptionStatus {
+  active
+  canceled
+  incomplete
+  incomplete_expired
+  past_due
+  trialing
+  unpaid
+}
+
+model Subscription {
+  id                  String             @id @default(cuid())
+  userId              String
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId String            @unique
+  status              SubscriptionStatus
+  priceId             String?
+  currentPeriodEnd    DateTime
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+// File model for Cloudflare R2 storage
+model File {
+  id        String   @id @default(cuid())
+  name      String
+  key       String   @unique
+  type      String
+  size      Int
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
