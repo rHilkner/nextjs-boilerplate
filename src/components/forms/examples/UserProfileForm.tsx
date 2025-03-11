@@ -1,33 +1,13 @@
 'use client';
 
 import React from 'react';
-import { z } from 'zod';
 import { Button } from '@/components/common/Button';
 import { FormContainer } from '@/components/forms/Form';
 import { FormField } from '@/components/forms/FormField';
 import { SelectField } from '@/components/forms/SelectField';
 import { CheckboxField } from '@/components/forms/CheckboxField';
 import { TextAreaField } from '@/components/forms/TextAreaField';
-
-// Define the form schema using Zod
-const userProfileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name cannot exceed 50 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  phone: z.string().optional(),
-  role: z.enum(['user', 'admin', 'editor'], {
-    errorMap: () => ({ message: 'Please select a valid role' }),
-  }),
-  department: z.string().min(1, 'Please select a department'),
-  bio: z.string().max(500, 'Bio cannot exceed 500 characters').optional(),
-  notify: z.boolean().default(false),
-  acceptTerms: z.boolean()
-    .refine(val => val === true, {
-      message: 'You must accept the terms and conditions',
-    }),
-});
-
-// Infer the TypeScript type from the schema
-type UserProfileFormData = z.infer<typeof userProfileSchema>;
+import {UserProfileFormData, userProfileSchema} from "@/lib/schemas";
 
 // Options for the department select field
 const departmentOptions = [
@@ -83,7 +63,7 @@ export function UserProfileForm({ onSubmit, defaultValues, isSubmitting }: UserP
               placeholder="Enter your full name"
               required
             />
-            
+
             <FormField
               name="email"
               label="Email Address"
@@ -93,7 +73,7 @@ export function UserProfileForm({ onSubmit, defaultValues, isSubmitting }: UserP
               required
             />
           </div>
-          
+
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <FormField
               name="phone"
@@ -102,7 +82,7 @@ export function UserProfileForm({ onSubmit, defaultValues, isSubmitting }: UserP
               placeholder="(123) 456-7890"
               helperText="Optional. We'll only use this for account recovery."
             />
-            
+
             <SelectField
               name="role"
               label="Role"
@@ -111,7 +91,7 @@ export function UserProfileForm({ onSubmit, defaultValues, isSubmitting }: UserP
               required
             />
           </div>
-          
+
           <SelectField
             name="department"
             label="Department"
@@ -120,7 +100,7 @@ export function UserProfileForm({ onSubmit, defaultValues, isSubmitting }: UserP
             helperText="Select the department you belong to"
             required
           />
-          
+
           <TextAreaField
             name="bio"
             label="Bio"
@@ -129,7 +109,7 @@ export function UserProfileForm({ onSubmit, defaultValues, isSubmitting }: UserP
             helperText="Maximum 500 characters"
             rows={4}
           />
-          
+
           <div className="space-y-2">
             <CheckboxField
               name="notify"
@@ -137,7 +117,7 @@ export function UserProfileForm({ onSubmit, defaultValues, isSubmitting }: UserP
               form={form}
               helperText="We'll send you updates about your account and new features"
             />
-            
+
             <CheckboxField
               name="acceptTerms"
               label="I accept the terms and conditions"
@@ -145,7 +125,7 @@ export function UserProfileForm({ onSubmit, defaultValues, isSubmitting }: UserP
               required
             />
           </div>
-          
+
           <div className="flex justify-end space-x-4">
             <Button type="button" variant="outline">
               Cancel

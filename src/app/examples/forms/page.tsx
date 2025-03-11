@@ -3,16 +3,16 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { UserProfileForm } from '@/components/forms/examples/UserProfileForm';
-import { z } from 'zod';
+import { UserProfileFormData } from "@/lib/schemas";
 
 /**
  * Example page that demonstrates how to use the form components
  */
 export default function FormsExamplePage() {
-  const [submittedData, setSubmittedData] = useState<any>(null);
+  const [submittedData, setSubmittedData] = useState<UserProfileFormData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: UserProfileFormData) => {
     setIsSubmitting(true);
     
     // Simulate an API call
@@ -96,20 +96,3 @@ export default function FormsExamplePage() {
     </div>
   );
 }
-
-// Define the form schema using Zod
-const userProfileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name cannot exceed 50 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  phone: z.string().optional(),
-  role: z.enum(['user', 'admin', 'editor'], {
-    errorMap: () => ({ message: 'Please select a valid role' }),
-  }),
-  department: z.string().min(1, 'Please select a department'),
-  bio: z.string().max(500, 'Bio cannot exceed 500 characters').optional(),
-  notify: z.boolean().default(false),
-  acceptTerms: z.boolean()
-    .refine(val => val === true, {
-      message: 'You must accept the terms and conditions',
-    }),
-});

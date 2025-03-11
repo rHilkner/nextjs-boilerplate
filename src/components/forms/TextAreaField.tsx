@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Controller, UseFormReturn, FieldValues, Path, FieldError } from 'react-hook-form';
-import { TextArea, TextAreaProps } from '../common/TextArea';
+import { TextArea } from '../common/TextArea';
 
 export interface TextAreaFieldProps<TFieldValues extends FieldValues = FieldValues> {
   name: Path<TFieldValues>;

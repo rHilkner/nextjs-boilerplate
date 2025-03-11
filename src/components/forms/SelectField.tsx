@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Controller, UseFormReturn, FieldValues, Path, FieldError } from 'react-hook-form';
-import { Select, SelectProps, SelectOption } from '../common/Select';
+import { Select, SelectOption } from '../common/Select';
 
 export interface SelectFieldProps<TFieldValues extends FieldValues = FieldValues> {
   name: Path<TFieldValues>;

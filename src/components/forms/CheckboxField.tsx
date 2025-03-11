@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Controller, UseFormReturn, FieldValues, Path, FieldError } from 'react-hook-form';
-import { Checkbox, CheckboxProps } from '../common/Checkbox';
+import { Checkbox } from '../common/Checkbox';
 
 export interface CheckboxFieldProps<TFieldValues extends FieldValues = FieldValues> {
   name: Path<TFieldValues>;

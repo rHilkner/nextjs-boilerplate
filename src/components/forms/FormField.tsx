@@ -2,11 +2,12 @@
 
 import React from 'react';
 import { Controller, UseFormReturn, FieldValues, Path, FieldError } from 'react-hook-form';
-import { Input, InputProps } from '../common/Input';
+import { Input } from '../common/Input';
 
 export interface FormFieldProps<TFieldValues extends FieldValues = FieldValues> {
   name: Path<TFieldValues>;
-  form: UseFormReturn<TFieldValues>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: UseFormReturn<any>;
   label?: string;
   helperText?: string;
   placeholder?: string;
@@ -25,7 +26,7 @@ export function FormField<TFieldValues extends FieldValues = FieldValues>({
 }: FormFieldProps<TFieldValues>): React.ReactElement {
   const error = form.formState.errors[name] as FieldError | undefined;
   const errorMessage = error?.message;
-  
+
   return (
     <Controller
       control={form.control}

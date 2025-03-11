@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { FieldValues, UseFormReturn, SubmitHandler, DefaultValues } from 'react-hook-form';
-import { ZodSchema, TypeOf } from 'zod';
+import {FieldValues, UseFormReturn, SubmitHandler, DefaultValues} from 'react-hook-form';
+import { ZodSchema} from 'zod';
 import { useZodForm } from '@/hooks/useZodForm';
 
 export interface FormProps<TFieldValues extends FieldValues = FieldValues> {
@@ -53,11 +53,13 @@ export function Form<TFieldValues extends FieldValues = FieldValues>({
   );
 }
 
-export interface FormContainerProps {
-  schema: ZodSchema<unknown>;
-  defaultValues?: any;
+export interface FormContainerProps<TFieldValues extends FieldValues = FieldValues> {
+  schema: ZodSchema<TFieldValues>;
+  defaultValues?: DefaultValues<TFieldValues>;
+  // TODO find the correct type below instead of using any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit: SubmitHandler<any>;
-  children: (form: any) => React.ReactNode;
+  children: (form: UseFormReturn<TFieldValues>) => React.ReactNode;
   className?: string;
   id?: string;
   resetOnSubmit?: boolean;
