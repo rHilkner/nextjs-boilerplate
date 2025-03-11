@@ -1,153 +1,319 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ZodSchema } from 'zod';
-import { prisma } from '../db/prisma';
+import { ZodSchema, ZodError, z, ZodType } from 'zod';
 import { logger } from '../logging';
 
-interface RequestHandlerOptions {
-  requiredRole?: 'CUSTOMER' | 'ADMIN';
-  requiredPermissions?: string[];
+/**
+ * Types for authentication context
+ */
+export type AuthContext = {
+  userId: string | null;
+  role: string | null;
+  valid: false;
+} | ValidAuthContext;
+
+export type ValidAuthContext = {
+  userId: string;
+  role: string;
+  valid: true;
+  has: (criteria: { role?: string }) => boolean;
+};
+
+/**
+ * Function signatures for public and protected endpoints
+ */
+export type RequestFnPublicParams = {
+  authCtx: AuthContext;
+  data: unknown;
+  query: Record<string, string>;
+  headers: Record<string, string>;
+  req: NextRequest;
+};
+
+export type RequestFnProtectedParams = {
+  authCtx: ValidAuthContext;
+  data: unknown;
+  query: Record<string, string>;
+  headers: Record<string, string>;
+  req: NextRequest;
+};
+
+export type RequestFnPublic<T extends ZodType<unknown>> = (
+  params: RequestFnPublicParams,
+  data: z.infer<T> | undefined,
+) => Promise<NextResponse>;
+
+export type RequestFnProtected<T extends ZodType<unknown>> = (
+  params: RequestFnProtectedParams,
+  data: z.infer<T> | undefined,
+) => Promise<NextResponse>;
+
+type RequestHandlerOptionsWithSchema<T extends ZodSchema> = {
+  schema: T;
+  isPublicEndpoint?: boolean;
+  requiredRole?: string;
+};
+
+type RequestHandlerOptionsWithoutSchema = {
+  schema?: undefined;
+  isPublicEndpoint?: boolean;
+  requiredRole?: string;
+};
+
+// Overload for endpoints with a schema
+export function requestHandler<T extends ZodSchema>(
+  options: RequestHandlerOptionsWithSchema<T> & { isPublicEndpoint: true },
+  requestFn: (
+    params: RequestFnPublicParams,
+    data: z.infer<T>,
+  ) => Promise<NextResponse>,
+): (req: NextRequest) => Promise<NextResponse>;
+
+export function requestHandler<T extends ZodSchema>(
+  options: RequestHandlerOptionsWithSchema<T> & { isPublicEndpoint?: false },
+  requestFn: (
+    params: RequestFnProtectedParams,
+    data: z.infer<T>,
+  ) => Promise<NextResponse>,
+): (req: NextRequest) => Promise<NextResponse>;
+
+// Overload for endpoints without a schema
+export function requestHandler(
+  options: RequestHandlerOptionsWithoutSchema & { isPublicEndpoint: true },
+  requestFn: (
+    params: RequestFnPublicParams,
+    data: unknown,
+  ) => Promise<NextResponse>,
+): (req: NextRequest) => Promise<NextResponse>;
+
+export function requestHandler(
+  options: RequestHandlerOptionsWithoutSchema & { isPublicEndpoint?: false },
+  requestFn: (
+    params: RequestFnProtectedParams,
+    data: unknown,
+  ) => Promise<NextResponse>,
+): (req: NextRequest) => Promise<NextResponse>;
+
+/**
+ * Creates a request handler that:
+ *   - Checks authentication based on the endpoint type (public/protected) and required role.
+ *   - Optionally validates the request body against a Zod schema.
+ *   - Invokes the provided request function.
+ *
+ * @param options - Options that control validation and authentication.
+ * @param requestFn - The request function to handle the business logic.
+ * @returns A function that accepts a NextRequest and returns a NextResponse.
+ */
+export function requestHandler<T extends ZodType<unknown>>(
+  options: RequestHandlerOptionsWithSchema<T> | RequestHandlerOptionsWithoutSchema,
+  requestFn: RequestFnPublic<T> | RequestFnProtected<T>,
+): (req: NextRequest) => Promise<NextResponse> {
+  return async (req: NextRequest): Promise<NextResponse> => {
+    // Get request ID from headers or generate a new one
+    const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
+    const log = logger.child({ requestId });
+    
+    log.info({
+      method: req.method,
+      url: req.nextUrl.pathname,
+    }, 'Incoming request');
+
+    const { schema, isPublicEndpoint, requiredRole } = options;
+    const authCtx = getAuth(req);
+
+    // Check authentication for protected endpoints
+    const authError = checkAuth(authCtx, isPublicEndpoint, requiredRole);
+    if (authError) return authError;
+
+    // Parse request body
+    const body = await parseRequestBody(req);
+    if (!body.ok) return body.error;
+
+    let data = body.data;
+
+    // If a schema is provided and data is not undefined, perform validation
+    if (schema && data !== undefined) {
+      const validation = validateData(schema, data);
+      if (!validation.ok) return validation.error;
+      data = validation.data;
+    }
+
+    const query = Object.fromEntries(req.nextUrl.searchParams.entries());
+    const headers = Object.fromEntries(req.headers.entries());
+    const params = { authCtx, query, headers, req };
+
+    try {
+      if (isPublicEndpoint) {
+        return await (requestFn as RequestFnPublic<T>)(
+          params as RequestFnPublicParams,
+          data,
+        );
+      } else {
+        return await (requestFn as RequestFnProtected<T>)(
+          params as RequestFnProtectedParams,
+          data,
+        );
+      }
+    } catch (handlerError: unknown) {
+      log.error({ error: handlerError }, 'Internal server error');
+      return NextResponse.json(
+        { message: 'Internal server error. Please try again later.' },
+        { status: 500 },
+      );
+    }
+  };
 }
 
 /**
- * A typed request handler utility for Next.js API routes
- * 
- * @param req The Next.js request object
- * @param schema The Zod schema for validating the request body
- * @param handler The handler function to process the request
- * @param options Options for authorization
- * @returns A Next.js response
+ * Gets authentication context from the request
  */
-export async function withAuth<T>(
-  req: NextRequest,
-  schema: ZodSchema<T>,
-  handler: (data: T, userId: string, role: string) => Promise<NextResponse>,
-  options: RequestHandlerOptions = {}
-) {
-  // Get request ID from headers (set by middleware)
-  const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
-  const log = logger.child({ requestId });
-  
-  try {
-    // Extract user information from request headers (set by middleware)
-    const userId = req.headers.get('x-user-id');
-    const userRole = req.headers.get('x-user-role');
-    
-    if (!userId || !userRole) {
-      log.error('User not authenticated');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    
-    // Check role requirements
-    if (options.requiredRole && userRole !== options.requiredRole) {
-      log.error({ userRole, requiredRole: options.requiredRole }, 'Insufficient role');
-      return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
-      );
-    }
-    
-    // Check permission requirements
-    if (options.requiredPermissions && options.requiredPermissions.length > 0) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { permissions: true },
-      });
-      
-      if (!user) {
-        log.error({ userId }, 'User not found');
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
-      }
-      
-      const hasPermissions = options.requiredPermissions.every(
-        permission => user.permissions.some(p => p.name === permission)
-      );
-      
-      if (!hasPermissions) {
-        log.error(
-          { 
-            userId, 
-            userPermissions: user.permissions.map(p => p.name), 
-            requiredPermissions: options.requiredPermissions 
-          },
-          'Insufficient permissions'
-        );
-        return NextResponse.json(
-          { error: 'Insufficient permissions' },
-          { status: 403 }
-        );
-      }
-    }
-    
-    // Parse and validate request data
-    let data: T;
-    
-    try {
-      const body = await req.json();
-      data = schema.parse(body);
-    } catch (error) {
-      log.error({ error }, 'Invalid request data');
-      return NextResponse.json(
-        { error: 'Invalid request data' },
-        { status: 400 }
-      );
-    }
-    
-    // Call the handler with validated data and user info
-    return await handler(data, userId, userRole);
-  } catch (error) {
-    log.error({ error }, 'Request handler error');
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+function getAuth(req: NextRequest): AuthContext {
+  const userId = req.headers.get('x-user-id');
+  const role = req.headers.get('x-user-role');
+
+  if (!userId || !role) {
+    return { userId: null, role: null, valid: false };
   }
+
+  return {
+    userId,
+    role,
+    valid: true,
+    has: (criteria: { role?: string }) => {
+      if (criteria.role) {
+        return role === criteria.role;
+      }
+      return true;
+    },
+  };
 }
 
 /**
- * A typed request handler utility for Next.js API routes that don't require authentication
- * 
- * @param req The Next.js request object
- * @param schema The Zod schema for validating the request body
- * @param handler The handler function to process the request
- * @returns A Next.js response
+ * Checks authentication and role requirements for protected endpoints.
+ * Returns a NextResponse with an error if the authentication is not valid.
  */
-export async function withoutAuth<T>(
-  req: NextRequest,
-  schema: ZodSchema<T>,
-  handler: (data: T) => Promise<NextResponse>
-) {
-  // Get request ID from headers (set by middleware)
-  const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
-  const log = logger.child({ requestId });
-  
-  try {
-    // Parse and validate request data
-    let data: T;
-    
-    try {
-      const body = await req.json();
-      data = schema.parse(body);
-    } catch (error) {
-      log.error({ error }, 'Invalid request data');
-      return NextResponse.json(
-        { error: 'Invalid request data' },
-        { status: 400 }
-      );
-    }
-    
-    // Call the handler with validated data
-    return await handler(data);
-  } catch (error) {
-    log.error({ error }, 'Request handler error');
+function checkAuth(
+  authCtx: AuthContext,
+  isPublicEndpoint?: boolean,
+  requiredRole?: string,
+): NextResponse | undefined {
+  if (isPublicEndpoint) return;
+
+  if (!authCtx.valid) {
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      {
+        message: 'Unauthorized. Please log in to access this resource.',
+      },
+      { status: 401 },
     );
   }
+
+  if (requiredRole && !authCtx.has({ role: requiredRole })) {
+    return NextResponse.json(
+      {
+        message: 'Forbidden. You do not have the necessary permissions to access this resource.',
+      },
+      { status: 403 },
+    );
+  }
+  return;
+}
+
+type ParseResult =
+  | { ok: true; data: unknown }
+  | { ok: false; error: NextResponse };
+
+/**
+ * Parses the request body according to its content type
+ */
+async function parseRequestBody(req: NextRequest): Promise<ParseResult> {
+  const contentTypeHeader = req.headers.get('content-type') || '';
+  const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+
+  // For GET requests or empty bodies, skip parsing
+  if (req.method === 'GET' || contentLength === 0) {
+    return { ok: true, data: undefined };
+  }
+
+  // Normalize the media type
+  const mediaType = contentTypeHeader.split(';')[0].trim().toLowerCase();
+
+  try {
+    let data: unknown;
+    switch (mediaType) {
+      case 'application/json':
+        data = await req.json();
+        break;
+      case 'application/x-www-form-urlencoded':
+      case 'multipart/form-data':
+        const result: Record<string, unknown> = {};
+        const formData = await req.formData();
+        for (const [key, value] of formData.entries()) {
+          result[key] = value;
+        }
+        data = result;
+        break;
+      default:
+        // For unsupported content types, skip parsing
+        data = undefined;
+        break;
+    }
+    return { ok: true, data };
+  } catch (error: unknown) {
+    logger.warn(`Error parsing ${mediaType} body:`, error);
+    return {
+      ok: false,
+      error: NextResponse.json(
+        {
+          message:
+            mediaType === 'application/json'
+              ? 'Invalid JSON body.'
+              : `Invalid ${mediaType} body.`,
+        },
+        { status: 400 },
+      ),
+    };
+  }
+}
+
+type ValidationResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: NextResponse };
+
+/**
+ * Validates data against the provided Zod schema
+ */
+function validateData<T>(
+  schema: ZodSchema<T>,
+  data: unknown,
+): ValidationResult<T> {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    const formattedErrors = formatZodError(result.error);
+    logger.warn('Validation error:', formattedErrors);
+    return {
+      ok: false,
+      error: NextResponse.json(
+        {
+          message: 'Validation error. Please review your request payload.',
+          errors: formattedErrors,
+        },
+        { status: 400 },
+      ),
+    };
+  }
+  return { ok: true, data: result.data };
+}
+
+/**
+ * Formats a ZodError into a record of error messages
+ */
+function formatZodError(error: ZodError): Record<string, string[]> {
+  return error.issues.reduce(
+    (acc, issue) => {
+      const path = issue.path.join('.') || 'root-object';
+      acc[path] = acc[path] ? [...acc[path], issue.message] : [issue.message];
+      return acc;
+    },
+    {} as Record<string, string[]>,
+  );
 }
