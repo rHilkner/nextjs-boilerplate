@@ -1,18 +1,17 @@
 import { OAuth2Client } from 'google-auth-library';
 import { logger } from '../logging';
+import { env_vars } from '../env-vars';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-const REDIRECT_URI = `${process.env.APP_URL || 'http://localhost:3000'}/api/auth/callback/google`;
+const REDIRECT_URI = `${env_vars.APP_URL}/api/auth/callback/google`;
 
-if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+if (!env_vars.GOOGLE_CLIENT_ID || !env_vars.GOOGLE_CLIENT_SECRET) {
   logger.warn('Google OAuth client ID or secret is not set');
 }
 
 // Create OAuth2 client
 export const googleAuthClient = new OAuth2Client(
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
+  env_vars.GOOGLE_CLIENT_ID,
+  env_vars.GOOGLE_CLIENT_SECRET,
   REDIRECT_URI
 );
 

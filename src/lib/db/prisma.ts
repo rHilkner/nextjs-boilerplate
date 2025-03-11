@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { logger } from '../logging';
+import { env_vars } from '../env-vars';
 
 // Create a Prisma Client with custom event handling
 const logOptions: Prisma.PrismaClientOptions = {
@@ -46,7 +47,7 @@ declare module '@prisma/client' {
 
 // Set up event listeners for logging
 prisma.$on('query', (event) => {
-  if (process.env.DEBUG_PRISMA === 'true') {
+  if (env_vars.DEBUG_PRISMA === '1') {
     logger.debug({
       query: event.query,
       params: event.params,
@@ -77,7 +78,7 @@ prisma.$on('warn', (event) => {
 });
 
 // Save prisma client to global in development
-if (process.env.NODE_ENV !== 'production') {
+if (env_vars.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 

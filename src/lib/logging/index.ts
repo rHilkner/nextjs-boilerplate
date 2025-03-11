@@ -1,11 +1,12 @@
 import pino from 'pino';
 import type { NextRequest, NextResponse } from 'next/server';
+import { env_vars } from '../env-vars';
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = env_vars.NODE_ENV === 'development';
 
 // Configure logger
 export const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
+  level: env_vars.LOG_LEVEL,
   formatters: {
     level: (label) => {
       return { level: label };

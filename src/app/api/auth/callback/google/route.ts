@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { setAuthCookie, signJwtToken } from '@/lib/auth/jwt';
 import { googleAuthClient } from '@/lib/auth/google';
 import { requestHandler } from '@/lib/api/request-handler';
+import { env_vars } from '@/lib/env-vars';
 
 // Mark this route as dynamic to fix build error
 export const dynamic = 'force-dynamic';
@@ -45,7 +46,7 @@ export const GET = requestHandler(
       // Verify the ID token
       const ticket = await googleAuthClient.verifyIdToken({
         idToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
+        audience: env_vars.GOOGLE_CLIENT_ID,
       });
       
       const payload = ticket.getPayload();

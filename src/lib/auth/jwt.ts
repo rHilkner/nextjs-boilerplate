@@ -1,9 +1,6 @@
 import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
-
-// These values would typically come from environment variables
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-at-least-32-chars';
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
+import { env_vars } from '../env-vars';
 
 // Extend the jose JWTPayload interface with our custom fields
 interface JwtPayload extends JWTPayload {
@@ -17,12 +14,12 @@ interface JwtPayload extends JWTPayload {
  * Signs a JWT token with user data
  */
 export async function signJwtToken(payload: Omit<JwtPayload, 'iat' | 'exp'>) {
-  const secret = new TextEncoder().encode(JWT_SECRET);
+  const secret = new TextEncoder().encode(env_vars.JWT_SECRET);
   
   const token = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime(JWT_EXPIRY)
+    .setExpirationTime(env_vars.JWT_EXPIRY)
     .sign(secret);
   
   return token;
@@ -33,7 +30,7 @@ export async function signJwtToken(payload: Omit<JwtPayload, 'iat' | 'exp'>) {
  */
 export async function verifyJwtToken(token: string): Promise<JwtPayload> {
   try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = new TextEncoder().encode(env_vars.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
     
     // Validate that the payload has the required fields
@@ -56,7 +53,7 @@ export function setAuthCookie(token: string) {
     name: 'auth_token',
     value: token,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: env_vars.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
