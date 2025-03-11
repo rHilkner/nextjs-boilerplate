@@ -11,7 +11,8 @@ export async function middleware(request: NextRequest) {
   // Public routes that don't require authentication
   const publicPaths = [
     '/',
-    '/login',
+    '/auth/login',
+    '/auth/signup',
     '/api/auth',
     '/api/webhooks',
     '/api/health',
@@ -39,7 +40,7 @@ export async function middleware(request: NextRequest) {
   
   // If there's no token, redirect to login
   if (!token) {
-    const url = new URL('/login', request.url);
+    const url = new URL('/auth/login', request.url);
     url.searchParams.set('from', request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
@@ -68,7 +69,7 @@ export async function middleware(request: NextRequest) {
     });
   } catch (error) {
     // Invalid or expired token
-    const url = new URL('/login', request.url);
+    const url = new URL('/auth/login', request.url);
     url.searchParams.set('from', request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }

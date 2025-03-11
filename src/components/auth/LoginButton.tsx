@@ -7,12 +7,14 @@ export interface LoginButtonProps {
   provider: 'google' | 'github';
   redirectUrl?: string;
   className?: string;
+  mode?: 'login' | 'signup';
 }
 
 export function LoginButton({
   provider,
   redirectUrl,
   className,
+  mode = 'login',
 }: LoginButtonProps): React.ReactElement {
   const handleLogin = async () => {
     const url = `/api/auth/${provider}${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`;
@@ -27,7 +29,7 @@ export function LoginButton({
       className={className}
       leftIcon={getProviderIcon(provider)}
     >
-      Sign in with {getProviderName(provider)}
+      {mode === 'login' ? 'Sign in with ' : 'Sign up with '}{getProviderName(provider)}
     </Button>
   );
 }

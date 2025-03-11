@@ -6,10 +6,10 @@ import { metadata as rootMetadata } from '@/app/layout';
 
 export const metadata = {
   ...rootMetadata,
-  title: 'Sign In - Next.js SaaS Boilerplate',
+  title: 'Sign Up - Next.js SaaS Boilerplate',
 };
 
-export default function LoginPage({
+export default function SignupPage({
   searchParams,
 }: {
   searchParams?: { redirect?: string; error?: string };
@@ -21,12 +21,12 @@ export default function LoginPage({
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h1 className="text-center text-3xl font-extrabold text-gray-900">
-          Sign in to your account
+          Create your account
         </h1>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <a href="/auth/signup" className="font-medium text-blue-600 hover:text-blue-500">
-            Sign up
+          Already have an account?{' '}
+          <a href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
+            Sign in
           </a>
         </p>
       </div>
@@ -37,7 +37,7 @@ export default function LoginPage({
             <div className="mb-4 p-4 text-sm bg-red-50 text-red-600 rounded-md">
               {errorMessage === 'OAuthAccountNotLinked'
                 ? 'This email is already associated with another provider.'
-                : 'An error occurred during sign in. Please try again.'}
+                : 'An error occurred during sign up. Please try again.'}
             </div>
           )}
 
@@ -46,6 +46,7 @@ export default function LoginPage({
               provider="google"
               redirectUrl={redirectUrl}
               className="w-full"
+              mode="signup"
             />
             
             <div className="mt-4 text-sm text-center text-gray-600">
