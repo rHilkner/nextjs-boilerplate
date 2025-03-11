@@ -1,4 +1,5 @@
 import pino from 'pino';
+import type { NextRequest, NextResponse } from 'next/server';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -38,36 +39,26 @@ export function getLogger(context: string) {
  * @param res The HTTP response
  * @param next The next middleware function
  */
-export function requestLogger(req: any, res: any, next: any) {
-  const requestId = req.headers['x-request-id'] || crypto.randomUUID();
-  const startTime = Date.now();
+export function requestLogger(req: NextRequest, res: NextResponse, next: () => void) {
+  const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
   
-  // Attach request ID to the request
-  req.requestId = requestId;
-  
-  // Attach a child logger to the request
-  req.log = logger.child({ requestId });
+  // Create request logger with request ID
+  const reqLogger = logger.child({ requestId });
   
   // Log request
-  req.log.info({
+  reqLogger.info({
     method: req.method,
-    url: req.url,
-    query: req.query,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
+    url: req.nextUrl.pathname,
+    query: Object.fromEntries(req.nextUrl.searchParams),
+    ip: req.ip || '',
+    userAgent: req.headers.get('user-agent'),
   }, 'Request received');
   
-  // Log response
-  res.on('finish', () => {
-    const responseTime = Date.now() - startTime;
-    req.log.info({
-      method: req.method,
-      url: req.url,
-      statusCode: res.statusCode,
-      responseTime,
-    }, 'Response sent');
-  });
+  // For response logging, we use the reqLogger directly since
+  // we can't attach event listeners to NextResponse
+  // The response logging would need to be done after processing
   
+  // Call next middleware function
   next();
 }
 

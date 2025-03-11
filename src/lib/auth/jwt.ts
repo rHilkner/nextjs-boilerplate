@@ -1,17 +1,16 @@
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 
 // These values would typically come from environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-at-least-32-chars';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 
-interface JwtPayload {
+// Extend the jose JWTPayload interface with our custom fields
+interface JwtPayload extends JWTPayload {
   userId: string;
   email: string;
   role: 'CUSTOMER' | 'ADMIN';
   permissions?: string[];
-  iat: number;
-  exp: number;
 }
 
 /**
@@ -36,6 +35,11 @@ export async function verifyJwtToken(token: string): Promise<JwtPayload> {
   try {
     const secret = new TextEncoder().encode(JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
+    
+    // Validate that the payload has the required fields
+    if (!payload.userId || !payload.email || !payload.role) {
+      throw new Error('Invalid token payload');
+    }
     
     return payload as JwtPayload;
   } catch (error) {
