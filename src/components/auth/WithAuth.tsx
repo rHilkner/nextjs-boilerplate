@@ -19,7 +19,7 @@ export function WithAuth({ children }: WithAuthProps) {
   useEffect(() => {
     // Only redirect if we're not loading and the user is not authenticated
     if (!isLoading && !isAuthenticated) {
-      router.push(`/login?from=${encodeURIComponent(pathname)}`);
+      router.push(`/login?from=${encodeURIComponent(pathname || '')}`);
     }
   }, [isLoading, isAuthenticated, router, pathname]);
 
