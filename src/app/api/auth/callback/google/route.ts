@@ -4,6 +4,9 @@ import { prisma } from '@/lib/db/prisma';
 import { setAuthCookie, signJwtToken } from '@/lib/auth/jwt';
 import { googleAuthClient } from '@/lib/auth/google';
 
+// Mark this route as dynamic to fix build error
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   const requestId = crypto.randomUUID();
   const log = logger.child({ requestId });

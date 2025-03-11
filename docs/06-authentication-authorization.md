@@ -289,46 +289,97 @@ model Permission {
 
 ### React Hooks
 
-The application provides React hooks for using authentication in components:
+The application provides React hooks for using authentication in components, leveraging TanStack Query for data fetching:
 
 ```typescript
-// useAuth.ts
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+// useCurrentUser.ts - React Query based user fetching
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { User } from '@/components/auth/types';
 
-export function useAuth() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['auth', 'user'],
+export function useCurrentUser() {
+  return useQuery<User | null>({
+    queryKey: ['currentUser'],
     queryFn: async () => {
-      const response = await axios.get('/api/auth/user');
-      return response.data;
+      try {
+        const response = await fetch('/api/auth/me');
+        
+        if (!response.ok) {
+          // Return null for 401 - not authenticated
+          if (response.status === 401) {
+            return null;
+          }
+          throw new Error('Failed to fetch user');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+        return null;
+      }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
-
-  return {
-    user: data,
-    isLoading,
-    isError: !!error,
-    isAuthenticated: !!data && !error,
-  };
 }
 
-// usePermissions.ts
-export function usePermission(permission: string) {
-  const { user, isLoading, isError } = useAuth();
+// useLogout.ts - React Query based mutation for logout
+export function useLogout() {
+  const queryClient = useQueryClient();
   
-  if (isLoading || isError || !user) {
-    return false;
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to logout');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Invalidate the current user query and redirect
+      queryClient.setQueryData(['currentUser'], null);
+      window.location.href = '/';
+    },
+  });
+}
+
+// useAuth.ts - Context hook
+import { useContext } from 'react';
+import { AuthContext } from '@/components/auth/AuthProvider';
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   
-  // Admin has all permissions
-  if (user.role === 'ADMIN') {
-    return true;
-  }
+  return context;
+}
+
+// usePermissions.ts - Permission checking
+export function usePermissions() {
+  const { user } = useAuth();
   
-  // Check user permissions
-  return user.permissions.some(p => p.name === permission);
+  const hasPermission = (permission: string) => {
+    if (!user || !user.permissions) {
+      return false;
+    }
+    
+    // Admin has all permissions
+    if (user.role === 'ADMIN') {
+      return true;
+    }
+    
+    return user.permissions.includes(permission);
+  };
+  
+  return {
+    hasPermission,
+    hasRole: (role: 'ADMIN' | 'CUSTOMER') => user?.role === role,
+    isAdmin: user?.role === 'ADMIN',
+  };
 }
 ```
 

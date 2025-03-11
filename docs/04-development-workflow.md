@@ -155,6 +155,88 @@ docs: update README with deployment instructions
 7. Address review comments
 8. Merge after approval
 
+## Next.js Rendering Strategy
+
+### Preferred Rendering Approach
+
+1. **Prefer Static Generation**: Whenever possible, use static generation to improve performance and reduce server load.
+   
+   ```tsx
+   // Good example - static generation
+   export default function StaticPage() {
+     return <div>This page is statically generated</div>
+   }
+   ```
+
+2. **Favor Client-Side Processing**: Process data on the client-side when possible, using client-side data fetching and state management.
+
+   ```tsx
+   'use client';
+   
+   import { useState, useEffect } from 'react';
+   
+   // Good example - client-side data fetching
+   export default function ClientPage() {
+     const [data, setData] = useState(null);
+     
+     useEffect(() => {
+       fetch('/api/data')
+         .then(res => res.json())
+         .then(data => setData(data));
+     }, []);
+     
+     return <div>{data ? JSON.stringify(data) : 'Loading...'}</div>
+   }
+   ```
+
+3. **Dynamic Rendering Exceptions**: Use dynamic rendering (`dynamic = 'force-dynamic'`) only when:
+   - The page requires real-time data that can't be revalidated
+   - Server-side processing would significantly improve performance
+   - Authentication or authorization requirements can't be handled client-side
+   - API routes that need request-specific information (cookies, headers, etc.)
+
+   ```tsx
+   // API route that needs to be dynamic
+   export const dynamic = 'force-dynamic';
+   
+   export async function GET(request: Request) {
+     // Needs access to cookies, headers, etc.
+   }
+   ```
+
+### Components and Data Fetching
+
+1. **Static Pages with Dynamic Data**: For pages that are mostly static but need some dynamic data, use client components with React Query or SWR for data fetching.
+
+2. **Server Components**: Use server components for:
+   - Data fetching that requires secrets (API keys)
+   - Complex data processing that would be inefficient on the client
+   - SEO-critical content that needs to be in the initial HTML
+
+3. **API Routes**: Make API routes dynamic when they need request data, but keep them simple and focused on data access.
+
+4. **Client-Side Data Fetching**: Use TanStack Query (React Query) for client-side data fetching:
+
+   ```tsx
+   'use client';
+   
+   import { useQuery } from '@tanstack/react-query';
+   
+   // Good example - data fetching with React Query
+   export function useData() {
+     return useQuery({
+       queryKey: ['data'],
+       queryFn: async () => {
+         const response = await fetch('/api/data');
+         if (!response.ok) {
+           throw new Error('Failed to fetch data');
+         }
+         return response.json();
+       },
+     });
+   }
+   ```
+
 ## Adding New Features
 
 ### Adding a New Module
